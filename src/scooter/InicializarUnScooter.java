@@ -6,6 +6,7 @@
 package scooter;
 
 import conexion.ConectorTCP;
+import interfaz.Control;
 import java.util.Map;
 import util.CallbackRespuesta;
 import util.Util;
@@ -28,5 +29,9 @@ public class InicializarUnScooter {
         
         ScooterClientController controlador = new ScooterClientController (scooter, null);
         controlador.start();
+        scooter.setControlador(controlador);
+        
+        Control control = new Control (scooter);
+        control.mostrar();
     }
 }

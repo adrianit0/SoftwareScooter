@@ -42,11 +42,21 @@ public class ScooterClientController extends Thread {
     
     private boolean conectado;
     
+    private int tick;
+    private float lastLatitude;
+    private float lastLongitude;
+    
+    private String nick;
+    private String token;
+    
     public ScooterClientController (Scooter scooter, ScooterEvento evento) {
         this.scooter = scooter;
         this.evento = evento;
         bloqueado = true;
         conectado=false;
+        
+        lastLatitude = scooter.getLatitud();
+        lastLongitude = scooter.getLongitud();
     }
     
     @Override
@@ -64,6 +74,9 @@ public class ScooterClientController extends Thread {
     
     public void asignarEvento (ScooterEvento evento) {
         this.evento = evento;
+        
+        if (evento!=null)
+            evento.onEventExecute(bloqueado ? ScooterEvento.Evento.BLOQUEAR : ScooterEvento.Evento.DESBLOQUEAR);
     }
      
     public void eliminarEvento () {
@@ -76,19 +89,32 @@ public class ScooterClientController extends Thread {
         ConectorTCP.getInstance().realizarConexion("loginScooter", parametros, new CallbackRespuesta() {
             @Override
             public void success(Map<String, String> contenido) {
-                System.out.println("Conexión exitosa!");
+                //System.out.println("Conexión exitosa!");
                 conectado=true;
+                
+                String nickAux = contenido.get("nick");
+                String tokenAux = contenido.get("token");
+                ConectorTCP.getInstance().setNick(nickAux);
+                ConectorTCP.getInstance().setToken(tokenAux);
+                
+                nick =nickAux;
+                token=tokenAux;
+                
+                //System.out.println("Nick "+ nick + " Token " + token);
             }
 
             @Override
             public void error(Map<String, String> contenido, Util.CODIGO codigoError) {
                 intentos++;
-                System.err.println("Error: " + codigoError.toString());
+                
                 
                 String codigo = contenido.get("codeName");
                 if (codigo!=null && codigo.equals("notFound")) {
+                    System.err.println("La scooter ha sido dada de baja");
                     return;
                 }
+                
+                System.err.println("Error: " + codigoError.toString());
                 
                 if (intentos<=maxIntentos) {
                     try {
@@ -202,27 +228,48 @@ public class ScooterClientController extends Thread {
     private void ejecutando () {
         // Crear una rutina de acciones a realizar cada cierto tiempo
         try {
-            Thread.sleep(10000l);
+            Thread.sleep(1000l);
         } catch (InterruptedException ex) {
             System.err.println("ScooterController(Client)::ejecutando error");
         }
         
         if (conectado) {
-            //System.out.println("Han pasado 10s");
-            /*ConectorTCP.getInstance().realizarConexion("echo", new CallbackRespuesta() {
-                @Override
-                public void success(Map<String, String> contenido) {
-                    System.out.println("HOLA MUNDO");
+            
+            if (!bloqueado) {
+                actualizarPosicion();
+            } else {
+                if (tick%10==0) {
+                    actualizarPosicion();
                 }
-
-                @Override
-                public void error(Map<String, String> contenido, Util.CODIGO codigoError) {
-                    System.out.println("ERROR");
-                }
-
-            });*/
+            }
+            
+            tick++;
         }
         
         ejecutando();
+    }
+    
+    private void actualizarPosicion () {
+        if (lastLatitude!=scooter.getLatitud () || lastLongitude!=scooter.getLongitud()) {
+            lastLatitude = scooter.getLatitud();
+            lastLongitude = scooter.getLongitud();
+            
+            
+            Map<String,String> parametros = new HashMap<>();
+            parametros.put("latitud", lastLatitude+"");
+            parametros.put("longitud", lastLongitude+"");
+            ConectorTCP.getInstance().realizarConexion(nick, token, "actualizarPosicion", parametros, new CallbackRespuesta() {
+                @Override
+                public void success(Map<String, String> contenido) { }
+
+                @Override
+                public void error(Map<String, String> contenido, Util.CODIGO codigoError) {
+                    System.err.println("No se ha podido actualizar la posición de la scooter " + contenido.get("error"));
+                }
+                
+            });
+        }
+        
+        
     }
 }

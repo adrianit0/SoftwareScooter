@@ -115,6 +115,10 @@ public class ConectorTCP {
         realizarConexion(nick,token,"paquetePersistente",identificador,null,response, true);
         System.out.println("Añadida conexión persistente " + identificador + " con el servidor");
     }
+    
+    public synchronized void realizarConexion (String nick, String token, String uri, Map<String,String> parametros, CallbackRespuesta response) {
+        realizarConexion(nick,token,uri,getPaqueteID(),parametros,response, false);
+    }
 
     // Para tests
     public synchronized void realizarConexion (String nick, String token, String uri, String paqueteid, Map<String,String> parametros, CallbackRespuesta response, boolean persistente) {
@@ -234,7 +238,6 @@ public class ConectorTCP {
             // al ser TRY-WITH-RESOURCE estos se cierran solo al terminar la llave
             while (listening) {
                 try  {
-                    
                     // Preguntamos si hay paquetes en cola para enviar
                     if (out!=null && hayPaqueteEnCola()) {
                         PaqueteServidor paquete = enCola.remove(0);
@@ -254,8 +257,6 @@ public class ConectorTCP {
                     if (in!=null && in.ready()) {
                         String respuesta = in.readLine();
                         
-                        System.out.println("Respuesta -> " + respuesta);
-
                         PaqueteCliente paqueteCliente = Util.unpackToCliente(respuesta);
 
                         if (paqueteCliente!=null) {

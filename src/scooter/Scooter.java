@@ -21,6 +21,8 @@ public class Scooter {
     
     // La moto se encuentra bloqueado, es decir, no se puede usar.
     private Boolean bloqueado;
+    
+    private ScooterClientController controlador;
 
     public Scooter() {
     }
@@ -81,4 +83,14 @@ public class Scooter {
     public void setBloqueado(Boolean bloqueado) {
         this.bloqueado = bloqueado;
     }
+
+    public ScooterClientController getControlador() {
+        return controlador;
+    }
+
+    public void setControlador(ScooterClientController controlador) {
+        this.controlador = controlador;
+    }
+    
+    
 }
